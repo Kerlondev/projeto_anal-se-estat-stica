@@ -67,10 +67,10 @@ st.sidebar.header("Filtros")
 atributo = st.sidebar.selectbox(
     "Escolha o atributo",
     [
-        "sepal_length",
-        "sepal_width",
-        "petal_length",
-        "petal_width"
+        "comprimento_sepala",
+        "largura_sepala",
+        "comprimento_petala",
+        "largura_petala"
     ]
 )
 
@@ -105,28 +105,22 @@ st.header("📍 Estatísticas de Dados Avulsos")
 col1, col2, col3, col4, col5 = st.columns(5)
 
 # Média
-
 media = calcular_media(dados)
 
 # Mediana
-
 mediana = dados_filtrados.median()
 
 # Moda (tratamento seguro)
-
 moda_series = dados_filtrados.mode()
-
 if moda_series.empty:
     moda = np.nan
 else:
     moda = moda_series.iloc[0]
 
 # Variância (amostral)
-
 variancia = dados_filtrados.var()
 
 # Desvio padrão
-
 desvio = dados_filtrados.std()
 
 with col1:
@@ -144,6 +138,58 @@ with col4:
 with col5:
     st.metric("Desvio Padrão", f"{desvio:.3f}")
 
+# -----------------------------------
+# TABELA DE DADOS NÃO AGRUPADOS (NOVA)
+# -----------------------------------
+
+st.subheader("📋 Tabela de Dados Não Agrupados")
+
+# Criar tabela com valores individuais, desvios e quadrados dos desvios
+tabela_nao_agrupados = []
+soma_x = 0
+soma_x2 = 0
+soma_d2 = 0
+
+for i, valor in enumerate(dados, 1):
+    xi = valor
+    xi2 = xi ** 2
+    di = xi - media
+    di2 = di ** 2
+    
+    tabela_nao_agrupados.append({
+        "i": i,
+        "x_i": round(xi, 3),
+        "x_i²": round(xi2, 3),
+        "d_i = x_i - x̄": round(di, 3),
+        "d_i²": round(di2, 3)
+    })
+    
+    soma_x += xi
+    soma_x2 += xi2
+    soma_d2 += di2
+
+# Adicionar totais
+tabela_nao_agrupados.append({
+    "i": "**Total**",
+    "x_i": f"**Σx = {soma_x:.3f}**",
+    "x_i²": f"**Σx² = {soma_x2:.3f}**",
+    "d_i = x_i - x̄": "**-**",
+    "d_i²": f"**Σd² = {soma_d2:.3f}**"
+})
+
+df_tabela_nao_agrup = pd.DataFrame(tabela_nao_agrupados)
+
+# Limitar visualização para não sobrecarregar (primeiras 20 + total)
+if len(df_tabela_nao_agrup) > 21:
+    st.dataframe(df_tabela_nao_agrup.head(20).append(df_tabela_nao_agrup.tail(1)), 
+                use_container_width=True)
+    st.caption(f"*(Mostrando primeiras 20 observações de {n} + total)*")
+else:
+    st.dataframe(df_tabela_nao_agrup, use_container_width=True)
+
+# Verificação da variância
+variancia_calculada = soma_d2 / (n - 1)
+st.info(f"**Verificação:** Variância calculada manualmente = Σd²/(n-1) = {soma_d2:.3f}/{n-1} = {variancia_calculada:.3f}")
 
 # -----------------------------------
 # Histograma
@@ -152,12 +198,9 @@ with col5:
 st.subheader("Distribuição dos Dados")
 
 fig, ax = plt.subplots()
-
 ax.hist(dados_filtrados, bins=10)
-
 ax.set_xlabel(atributo)
 ax.set_ylabel("Frequência")
-
 st.pyplot(fig)
 
 # -----------------------------------
@@ -168,11 +211,9 @@ st.markdown("---")
 st.header("📈 Distribuição de Frequência")
 
 # Regra de Sturges
-
 k = math.ceil(1 + 3.322 * math.log10(n))
 
 # Amplitudes
-
 valor_min = dados_filtrados.min()
 valor_max = dados_filtrados.max()
 
@@ -192,16 +233,13 @@ classes = []
 limite_inferior = valor_min
 
 for i in range(k):
-
     limite_superior = limite_inferior + amplitude_classe
-
     classes.append(
         (
             round(limite_inferior, 3),
             round(limite_superior, 3)
         )
     )
-
     limite_inferior = limite_superior
 
 
@@ -214,13 +252,11 @@ tabela = []
 freq_acumulada = 0
 
 for i, (inf, sup) in enumerate(classes):
-
     if i == k - 1:
         fi = dados_filtrados[
             (dados_filtrados >= inf) &
             (dados_filtrados <= sup)
         ].count()
-
     else:
         fi = dados_filtrados[
             (dados_filtrados >= inf) &
@@ -234,13 +270,11 @@ for i, (inf, sup) in enumerate(classes):
     xi = (inf + sup) / 2
 
     tabela.append({
-
         "Classe": f"{inf} ├ {sup}",
         "Ponto Médio (xi)": xi,
         "f_i": fi,
         "F_ac": freq_acumulada,
         "f_r %": round(fr, 2)
-
     })
 
 
@@ -255,18 +289,14 @@ st.table(df_freq)
 st.header("🗂️ Estatísticas de Dados Agrupados")
 
 # Média agrupada
-
 soma = 0
-
 for linha in tabela:
     soma += linha["f_i"] * linha["Ponto Médio (xi)"]
 
 media_agrupada = soma / n
 
 # Variância agrupada
-
 soma_var = 0
-
 for linha in tabela:
     soma_var += linha["f_i"] * (
         (linha["Ponto Médio (xi)"] - media_agrupada) ** 2
@@ -328,4 +358,4 @@ with c4:
     st.metric("Desvio Padrão Agrupado", 
          f"{desvio_agrupado:.3f}")
 
-st.success("Cálculos concluídos com sucesso.")
+st.success("Cálculos concluídos com sucesso! ✅")
