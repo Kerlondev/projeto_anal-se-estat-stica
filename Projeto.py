@@ -94,7 +94,7 @@ dados = dados_filtrados.tolist()
 
 n = len(dados)
 
-st.write(f"Número de observações: {n}")
+st.write(df.colums.tolist())
 
 # -----------------------------------
 # FASE 1 - Estatísticas simples
